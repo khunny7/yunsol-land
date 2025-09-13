@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { RoomStage } from './components/RoomStage';
 
 interface Player { id: string; name: string; roomId: string; stats: any; }
 interface RoomSnapshot { id: string; name: string; description: string; exits: Record<string,string>; players: {id:string;name:string}[]; mobs: any[]; }
@@ -12,6 +13,7 @@ export const App: React.FC = () => {
   const [log, setLog] = useState<string[]>([]);
   const [nameInput, setNameInput] = useState('');
   const [cmd, setCmd] = useState('');
+  const [canvasSize, setCanvasSize] = useState({ width: 640, height: 480 });
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,10 +45,45 @@ export const App: React.FC = () => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [log]);
 
+  useEffect(() => {
+    if (room) {
+      console.log('App room state updated:', room);
+    }
+  }, [room]);
+
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth < 700) {
+        setCanvasSize({ width: window.innerWidth, height: window.innerHeight * 0.5 });
+      } else {
+        setCanvasSize({ width: 640, height: 480 });
+      }
+    }
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   function appendLog(line: string) { setLog(l => [...l, line]); }
 
   function doLogin() {
-    socket?.emit('login', { name: nameInput || 'Guest' + Math.floor(Math.random()*1000) });
+    console.log('Login button clicked', { nameInput, socket, connected });
+    if (!connected || !socket) {
+      appendLog('Socket not connected.');
+      return;
+    }
+    socket.emit('login', { name: nameInput || 'Guest' + Math.floor(Math.random()*1000) });
+  }
+
+  function doLogout() {
+    setPlayer(null);
+    setRoom(null);
+    setLog([]);
+    setNameInput('');
+    setCmd('');
+    socket?.disconnect();
+    setSocket(null);
+    setConnected(false);
   }
 
   function sendCommand() {
@@ -61,35 +98,43 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: 'monospace' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'monospace' }}>
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#222' }}>
+        {room ? (
+          <RoomStage room={room} playerId={player?.id || null} width={canvasSize.width} height={canvasSize.height} />
+        ) : (
+          <div style={{ width: canvasSize.width, height: canvasSize.height, background: '#222', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            No room data
+          </div>
+        )}
+      </div>
+      <div style={{ width: '100%', background: '#181818', color: '#eee', padding: 12, boxSizing: 'border-box' }}>
         {!player && (
-          <div style={{ padding: 8 }}>
+          <div style={{ padding: 8, display: 'flex', gap: 8 }}>
             <input value={nameInput} onChange={e => setNameInput(e.target.value)} placeholder="Name" />
             <button onClick={doLogin} disabled={!connected}>Login</button>
           </div>
         )}
+        {player && (
+          <button onClick={doLogout} style={{ marginBottom: 8 }}>Logout</button>
+        )}
         {player && room && (
-          <div style={{ padding: 8 }}>
-            <h3>{room.name}</h3>
-            <p>{room.description}</p>
+          <div style={{ marginBottom: 8 }}>
+            <h3 style={{ margin: 0 }}>{room.name}</h3>
+            <p style={{ margin: '4px 0' }}>{room.description}</p>
             <div>Exits: {exitButtons()}</div>
             <div>Players: {room.players.map(p => p.name).join(', ')}</div>
           </div>
         )}
-        <div ref={logRef} style={{ flex: 1, overflow: 'auto', background: '#111', color: '#ddd', padding: 8 }}>
+        <div ref={logRef} style={{ maxHeight: 120, overflow: 'auto', background: '#111', color: '#ddd', padding: 8, marginBottom: 8 }}>
           {log.map((l,i) => <div key={i}>{l}</div>)}
         </div>
         {player && (
-          <div style={{ padding: 8 }}>
-            <input style={{ width: '80%' }} value={cmd} onChange={e => setCmd(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') sendCommand(); }} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input style={{ flex: 1 }} value={cmd} onChange={e => setCmd(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') sendCommand(); }} />
             <button onClick={sendCommand}>Send</button>
           </div>
         )}
-      </div>
-      <div style={{ width: 300, borderLeft: '1px solid #333', padding: 8 }}>
-        <h4>Status</h4>
-        {player && <div>HP: {player.stats.hp}/{player.stats.maxHp}</div>}
       </div>
     </div>
   );

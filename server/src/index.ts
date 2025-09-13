@@ -15,13 +15,17 @@ fastify.get('/health', async () => ({ ok: true }));
 io.on('connection', (socket) => {
   // Temporary simple join flow: client sends a name
   socket.on('login', ({ name }) => {
-    const player = runtime.createOrLoadPlayer(name);
+    let player = runtime.createOrLoadPlayer(name);
     player.socketId = socket.id;
+    player.roomId = 'town_square';
+    runtime.players.set(player.id, player);
+    socket.join(player.roomId);
+    // Emit snapshot after joining room
+    const snap = getRoomSnapshot(player.roomId);
     socket.emit('bootstrap', {
       player: { id: player.id, name: player.name, roomId: player.roomId, stats: player.stats },
-      room: getRoomSnapshot(player.roomId)
+      room: snap
     });
-    socket.join(player.roomId);
   });
 
   socket.on('command', (raw: string) => {
