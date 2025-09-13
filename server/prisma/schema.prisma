@@ -27,6 +27,18 @@ model Room {
   staticFlags Json    // { safe: true }
 }
 
+model Mob {
+  id           String  @id @default(cuid())
+  name         String
+  baseStats    Json    // { hp, maxHp, atk, def, speed }
+  aiType       String  @default("wander") // wander, guard, aggressive, etc.
+  respawnMs    Int     @default(30000) // respawn time in milliseconds
+  description  String  @default("")
+  roomId       String? // which room this mob spawns in
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 model WorldMeta {
   key   String @id
   value Json

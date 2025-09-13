@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import { Server as SocketIOServer } from 'socket.io';
 import { initWorld, getRoomSnapshot } from './world/loader';
 import { handleCommand } from './core/commands';
+import { handleEditorEvents } from './core/editor';
 import { runtime } from './state/runtime';
 import { startGameLoop } from './core/loop/tickLoop';
 
@@ -35,6 +36,9 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     runtime.handleDisconnect(socket.id);
   });
+
+  // Handle editor events
+  handleEditorEvents(socket);
 });
 
 runtime.setIO(io);
