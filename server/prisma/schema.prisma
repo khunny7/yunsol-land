@@ -1,0 +1,33 @@
+// Prisma schema (SQLite) initial minimal models
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../data/game.db"
+}
+
+model Player {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  roomId     String
+  stats      Json
+  inventory  Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Room {
+  id          String  @id
+  name        String
+  description String
+  exits       Json    // { n: "roomId", s: ... }
+  staticFlags Json    // { safe: true }
+}
+
+model WorldMeta {
+  key   String @id
+  value Json
+}
