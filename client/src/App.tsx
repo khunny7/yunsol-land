@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { RoomStage } from './components/RoomStage';
+import { MapEditor } from './components/MapEditor';
+import { MobEditor } from './components/MobEditor';
+import { AppMode } from './types';
 
 interface Player { id: string; name: string; roomId: string; stats: any; }
 interface RoomSnapshot { id: string; name: string; description: string; exits: Record<string,string>; players: {id:string;name:string}[]; mobs: any[]; }
@@ -14,6 +17,7 @@ export const App: React.FC = () => {
   const [nameInput, setNameInput] = useState('');
   const [cmd, setCmd] = useState('');
   const [canvasSize, setCanvasSize] = useState({ width: 640, height: 480 });
+  const [mode, setMode] = useState<AppMode>('game');
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,8 +101,72 @@ export const App: React.FC = () => {
     return Object.keys(room.exits).map(d => <button key={d} onClick={() => socket?.emit('command', d)}>{d}</button>);
   }
 
+  function renderModeButtons() {
+    return (
+      <div style={{ background: '#34495e', padding: 8, display: 'flex', gap: 8 }}>
+        <button 
+          onClick={() => setMode('game')}
+          style={{ 
+            background: mode === 'game' ? '#3498db' : '#7f8c8d', 
+            color: 'white', 
+            border: 'none', 
+            padding: '6px 12px',
+            cursor: 'pointer'
+          }}
+        >
+          Game
+        </button>
+        <button 
+          onClick={() => setMode('mapEditor')}
+          style={{ 
+            background: mode === 'mapEditor' ? '#3498db' : '#7f8c8d', 
+            color: 'white', 
+            border: 'none', 
+            padding: '6px 12px',
+            cursor: 'pointer'
+          }}
+        >
+          Map Editor
+        </button>
+        <button 
+          onClick={() => setMode('mobEditor')}
+          style={{ 
+            background: mode === 'mobEditor' ? '#3498db' : '#7f8c8d', 
+            color: 'white', 
+            border: 'none', 
+            padding: '6px 12px',
+            cursor: 'pointer'
+          }}
+        >
+          Mob Editor
+        </button>
+      </div>
+    );
+  }
+
+  // Render editors
+  if (mode === 'mapEditor') {
+    return (
+      <div style={{ height: '100vh' }}>
+        {renderModeButtons()}
+        <MapEditor socket={socket} />
+      </div>
+    );
+  }
+
+  if (mode === 'mobEditor') {
+    return (
+      <div style={{ height: '100vh' }}>
+        {renderModeButtons()}
+        <MobEditor socket={socket} />
+      </div>
+    );
+  }
+
+  // Render game mode
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'monospace' }}>
+      {renderModeButtons()}
       <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#222' }}>
         {room ? (
           <RoomStage room={room} playerId={player?.id || null} width={canvasSize.width} height={canvasSize.height} />

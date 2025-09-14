@@ -15,8 +15,8 @@ export async function initWorld() {
       { id: 'town_square', name: 'Town Square', description: 'A bright open plaza.', exits: { n: 'north_road' }, staticFlags: { safe: true } },
       { id: 'north_road', name: 'North Road', description: 'A quiet path heading north.', exits: { s: 'town_square' }, staticFlags: {} }
     ];
-    runtime.rooms.set('town_square', rooms[0]);
-    runtime.rooms.set('north_road', rooms[1]);
+    runtime.rooms.set('town_square', rooms[0] as any);
+    runtime.rooms.set('north_road', rooms[1] as any);
   }
 }
 
